@@ -1,0 +1,61 @@
+version: '3'
+services:
+  sambad:
+    image: "ghcr.io/pccsuite/pccsamba/samba"
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - PCC_SAMBAAPI_DB_ADDR=postgres
+      - PCC_SAMBAAPI_DB_NAME=postgres
+      - PCC_SAMBAAPI_DB_USER=postgres
+      - PCC_SAMBAAPI_DB_PASSWORD
+      - PCC_SAMBAAPI_KEYCLOAK_HOST
+      - PCC_SAMBAAPI_KEYCLOAK_REALM
+      - PCC_SAMBAAPI_KEYCLOAK_CLIENT_ID
+      - PCC_SAMBAAPI_KEYCLOAK_CLIENT_SECRET
+    volumes:
+      - type: bind
+        source: ${PCC_SAMBA_DATA}/sambad/etc
+        target: /etc/samba
+      - type: bind
+        source: ${PCC_SAMBA_DATA}/sambad/lib
+        target: /var/lib/samba
+      - type: bind
+        source: ${PCC_SAMBA_DATA}/sambad/data
+        target: /data
+    ports:
+    #   - 53:53
+    #   - 53:53/udp
+      - 88:88
+      - 88:88/udp
+      - 135:135
+      - 137-138:137-138/udp
+      - 139:139
+      - 389:389
+      - 389:389/udp
+      - 445:445
+      - 464:464
+      - 464:464/udp
+      - 636:636
+      - 3268-3269:3268-3269
+      - 8081:8080
+  phpldapadmin:
+    image: "osixia/phpldapadmin:stable"
+    depends_on:
+      - sambad
+    ports:
+      - 25565:80
+    environment:
+      - PHPLDAPADMIN_LDAP_HOSTS=sambad
+      - PHPLDAPADMIN_HTTPS=false
+  postgres:
+    image: "postgres:latest"
+    volumes:
+      - type: bind
+        source: ${PCC_SAMBA_DATA}/postgres
+        target: /var/lib/postgresql/data
+    environment:
+      - "POSTGRES_PASSWORD=${PCC_SAMBAAPI_DB_PASSWORD}"
