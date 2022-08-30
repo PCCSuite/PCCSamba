@@ -4,6 +4,8 @@ services:
     image: "ghcr.io/pccsuite/pccsamba"
     depends_on:
       - postgres
+    cap_add:
+      - SYS_ADMIN
     environment:
       - PCC_SAMBAAPI_DB_ADDR=postgres
       - PCC_SAMBAAPI_DB_NAME=postgres
