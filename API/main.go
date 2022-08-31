@@ -18,7 +18,7 @@ func main() {
 	e.GET("/getPassword", handler.GetPassword)
 	e.POST("/setPassword", handler.SetPassword)
 
-	e.Start(":8080")
+	e.Start(":8081")
 }
 
 func root(c echo.Context) error {

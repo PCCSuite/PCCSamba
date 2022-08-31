@@ -18,6 +18,8 @@ RUN apk --no-cache --no-progress upgrade && \
 
 EXPOSE 137/udp 138/udp 139 445
 
+COPY ./docker/resolv.conf /etc
+
 VOLUME ["/etc", "/var/cache/samba", "/var/lib/samba", "/var/log/samba", "/run/samba"]
 
 ## health check

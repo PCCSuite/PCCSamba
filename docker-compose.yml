@@ -7,6 +7,7 @@ services:
     cap_add:
       - SYS_ADMIN
     hostname: ${PCC_SAMBA_HOSTNAME}
+    network_mode: host
     environment:
       - PCC_SAMBAAPI_DB_ADDR=postgres
       - PCC_SAMBAAPI_DB_NAME=postgres
@@ -26,22 +27,22 @@ services:
       - type: bind
         source: ${PCC_SAMBA_DATA}/sambad/data
         target: /data
-    ports:
-      - 53:53
-      - 53:53/udp
-      - 88:88
-      - 88:88/udp
-      - 135:135
-      - 137-138:137-138/udp
-      - 139:139
-      - 389:389
-      - 389:389/udp
-      - 445:445
-      - 464:464
-      - 464:464/udp
-      - 636:636
-      - 3268-3269:3268-3269
-      - 8081:8080
+    # ports:
+    #   - 53:53
+    #   - 53:53/udp
+    #   - 88:88
+    #   - 88:88/udp
+    #   - 135:135
+    #   - 137-138:137-138/udp
+    #   - 139:139
+    #   - 389:389
+    #   - 389:389/udp
+    #   - 445:445
+    #   - 464:464
+    #   - 464:464/udp
+    #   - 636:636
+    #   - 3268-3269:3268-3269
+    #   - 8081:8081
   phpldapadmin:
     image: "osixia/phpldapadmin:stable"
     depends_on:
