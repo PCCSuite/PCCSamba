@@ -26,8 +26,8 @@ services:
         source: ${PCC_SAMBA_DATA}/sambad/data
         target: /data
     ports:
-    #   - 53:53
-    #   - 53:53/udp
+      - 53:53
+      - 53:53/udp
       - 88:88
       - 88:88/udp
       - 135:135
