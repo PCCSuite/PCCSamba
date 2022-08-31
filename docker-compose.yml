@@ -6,6 +6,7 @@ services:
       - postgres
     cap_add:
       - SYS_ADMIN
+    hostname: ${PCC_SAMBA_HOSTNAME}
     environment:
       - PCC_SAMBAAPI_DB_ADDR=postgres
       - PCC_SAMBAAPI_DB_NAME=postgres
