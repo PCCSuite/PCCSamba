@@ -101,13 +101,31 @@ func SetPassword(c echo.Context) error {
 	case lib.PasswordModeDynamic:
 		break
 	case lib.PasswordModeStaticPlain:
-		samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(user, data.Password)
+		if err != nil {
+			if _, ok := err.(*exec.ExitError); !ok {
+				msg = err.Error()
+			}
+			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
+		}
 		userdata.Data = data.Password
 	case lib.PasswordModeStaticEncrypted:
-		samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(user, data.Password)
+		if err != nil {
+			if _, ok := err.(*exec.ExitError); !ok {
+				msg = err.Error()
+			}
+			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
+		}
 		userdata.Data = data.Encrypted
 	case lib.PasswordModeStaticUnstored:
-		samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(user, data.Password)
+		if err != nil {
+			if _, ok := err.(*exec.ExitError); !ok {
+				msg = err.Error()
+			}
+			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
+		}
 	default:
 		return lib.ErrorInvalidPasswordMode.Send(c)
 	}
