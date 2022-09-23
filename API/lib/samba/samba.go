@@ -1,7 +1,10 @@
 package samba
 
 import (
+	"errors"
 	"os/exec"
+	"strconv"
+	"strings"
 )
 
 func execSambaTool(args []string) (string, error) {
@@ -21,4 +24,20 @@ func AddUser(username, password string) (string, error) {
 
 func AddUserToGroup(username, group string) (string, error) {
 	return execSambaTool([]string{"group", "addmembers", group, username})
+}
+
+var ErrInvalidResult = errors.New("process result invalid")
+
+func GetUID(username string) (int, error) {
+	cmd := exec.Command("wbinfo", "-i", username)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return -1, err
+	}
+	dataRaw := string(out)
+	dataSplit := strings.Split(dataRaw, ":")
+	if len(dataSplit) != 7 {
+		return -1, ErrInvalidResult
+	}
+	return strconv.Atoi(dataSplit[2])
 }

@@ -14,7 +14,7 @@ COPY --from=build /go/src/sambaapi/SambaAPI /usr/bin
 
 ### samba
 RUN apk --no-cache --no-progress upgrade && \
-    apk --no-cache --no-progress add bash samba shadow tini tzdata samba-dc krb5 ca-certificates
+    apk --no-cache --no-progress add bash samba shadow tini tzdata samba-dc krb5 ca-certificates samba-winbind-clients
 
 EXPOSE 137/udp 138/udp 139 445
 
