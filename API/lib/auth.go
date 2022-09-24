@@ -3,6 +3,8 @@ package lib
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -65,30 +67,48 @@ func CheckToken(c echo.Context) (*IntrospectionResult, error) {
 
 	body := url.Values{}
 	body.Add("token", authorization)
-	resp, err := http.NewRequest("POST", TokenInfo.IntrospectURL, strings.NewReader(body.Encode()))
+	req, err := http.NewRequest("POST", TokenInfo.IntrospectURL, strings.NewReader(body.Encode()))
 	if err != nil {
+		err = fmt.Errorf("failed to create introspection request: %w", err)
+		log.Print(err)
 		return nil, ErrorInternalError.Send(c, err)
 	}
 
-	respRaw := make([]byte, 8192)
-	i, err := resp.Body.Read(respRaw)
+	req.Header.Set("Authorization", TokenInfo.IntrospectAuth)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Failed to read introspection result: %v", err)
-		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		return nil, ErrorInvalidToken3.Send(c)
+		err = fmt.Errorf("failed to request introspection: %w", err)
+		log.Print(err)
+		return nil, ErrorInternalError.Send(c, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		err = errors.New("not success code while introspection: " + resp.Status)
+		log.Print(err)
+		return nil, ErrorInternalError.Send(c, err)
+	}
+
+	respRaw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		err = fmt.Errorf("failed to read introspection result: %w", err)
+		log.Print(err)
+		return nil, ErrorInternalError.Send(c, err)
 	}
 
 	result := IntrospectionResult{}
-	err = json.Unmarshal(respRaw[:i], &result)
+	err = json.Unmarshal(respRaw, &result)
 	if err != nil {
-		log.Printf("Failed to unmarshal introspection result: %v", err)
-		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		return nil, ErrorInvalidToken4.Send(c)
+		err = fmt.Errorf("failed to unmarshal introspection result: %w", err)
+		log.Print(err)
+		return nil, ErrorInternalError.Send(c, err)
 	}
 
 	if !result.Active {
 		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		return nil, ErrorInvalidToken5.Send(c)
+		return nil, ErrorInvalidToken3.Send(c)
 	}
 
 	scope_ok := false

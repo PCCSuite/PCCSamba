@@ -137,18 +137,22 @@ func checkGroup(user string, roles []string) error {
 		if inRole {
 			if !inSamba {
 				msg, err := samba.AddUserToGroup(user, group)
-				if _, ok := err.(*exec.ExitError); ok {
-					err = fmt.Errorf("%s: %w", msg, err)
+				if err != nil {
+					if _, ok := err.(*exec.ExitError); ok {
+						err = fmt.Errorf("%s: %w", msg, err)
+					}
+					return fmt.Errorf("failed to add user to group %v: %w", group, err)
 				}
-				return fmt.Errorf("failed to add user to group %v: %w", group, err)
 			}
 		} else {
 			if inSamba {
 				msg, err := samba.RemoveUserFromGroup(user, group)
-				if _, ok := err.(*exec.ExitError); ok {
-					err = fmt.Errorf("%s: %w", msg, err)
+				if err != nil {
+					if _, ok := err.(*exec.ExitError); ok {
+						err = fmt.Errorf("%s: %w", msg, err)
+					}
+					return fmt.Errorf("failed to remove user from group %v: %w", group, err)
 				}
-				return fmt.Errorf("failed to remove user from group %v: %w", group, err)
 			}
 		}
 	}
