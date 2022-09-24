@@ -45,6 +45,7 @@ services:
       - 3268-3269:3268-3269
       - 8081:8081
     restart: unless-stopped
+    pull_policy: always
   phpldapadmin:
     image: "osixia/phpldapadmin:stable"
     depends_on:
@@ -55,6 +56,7 @@ services:
       - PHPLDAPADMIN_LDAP_HOSTS=sambad
       - PHPLDAPADMIN_HTTPS=false
     restart: unless-stopped
+    pull_policy: always
   postgres:
     image: "postgres:latest"
     volumes:
@@ -64,3 +66,4 @@ services:
     environment:
       - "POSTGRES_PASSWORD=${PCC_SAMBAAPI_DB_PASSWORD}"
     restart: unless-stopped
+    pull_policy: always
