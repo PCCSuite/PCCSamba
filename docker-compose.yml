@@ -44,6 +44,7 @@ services:
       - 636:636
       - 3268-3269:3268-3269
       - 8081:8081
+    restart: unless-stopped
   phpldapadmin:
     image: "osixia/phpldapadmin:stable"
     depends_on:
@@ -53,6 +54,7 @@ services:
     environment:
       - PHPLDAPADMIN_LDAP_HOSTS=sambad
       - PHPLDAPADMIN_HTTPS=false
+    restart: unless-stopped
   postgres:
     image: "postgres:latest"
     volumes:
@@ -61,3 +63,4 @@ services:
         target: /var/lib/postgresql/data
     environment:
       - "POSTGRES_PASSWORD=${PCC_SAMBAAPI_DB_PASSWORD}"
+    restart: unless-stopped
