@@ -1,69 +1,98 @@
 package lib
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v11"
 	"github.com/labstack/echo/v4"
 )
 
 var ErrNoUserID = errors.New("token isn't contain username")
 
-type KeyCloak struct {
-	client       gocloak.GoCloak
-	realm        string
-	clientId     string
-	clientSecret string
+var TokenInfo = struct {
+	IntrospectURL  string
+	IntrospectAuth string
+	Realm          string
+	Client         string
+}{
+	IntrospectURL:  os.Getenv("PCC_SAMBAAPI_TOKEN_INTROSPECT_URL"),
+	IntrospectAuth: os.Getenv("PCC_SAMBAAPI_TOKEN_INTROSPECT_AUTH"),
+	Realm:          os.Getenv("PCC_SAMBAAPI_TOKEN_REALM"),
+	Client:         os.Getenv("PCC_SAMBAAPI_TOKEN_CLIENT"),
 }
 
-var keycloak = KeyCloak{
-	client:       gocloak.NewClient(os.Getenv("PCC_SAMBAAPI_KEYCLOAK_HOST"), gocloak.SetAuthAdminRealms("admin/realms"), gocloak.SetAuthRealms("realms")),
-	realm:        os.Getenv("PCC_SAMBAAPI_KEYCLOAK_REALM"),
-	clientId:     os.Getenv("PCC_SAMBAAPI_KEYCLOAK_CLIENT_ID"),
-	clientSecret: os.Getenv("PCC_SAMBAAPI_KEYCLOAK_CLIENT_SECRET"),
+var person = struct {
+	Name string
+	Age  int
+}{
+	Name: "tenntenn",
+	Age:  30,
 }
 
-func CheckToken(c echo.Context) (id string, err error) {
+var TokenClientId = os.Getenv("PCC_SAMBAAPI_TOKEN_CLIENT")
+
+type IntrospectionResult struct {
+	Active      bool     `json:"active"`
+	Audience    []string `json:"aud"`
+	RealmAccess struct {
+		Roles []string `json:"roles"`
+	} `json:"realm_access"`
+	ResourceAccess map[string]struct {
+		Roles []string `json:"roles"`
+	} `json:"resource_access"`
+	Scope    string `json:"scope"`
+	Username string `json:"username"`
+}
+
+func CheckToken(c echo.Context) (*IntrospectionResult, error) {
 
 	authorization := c.Request().Header.Get("Authorization")
 	if authorization == "" {
-		c.Response().Header().Add("WWW-Authenticate", "Bearer realm=\""+keycloak.realm+"\"")
-		return "", ErrorTokenRequired.Send(c)
+		c.Response().Header().Add("WWW-Authenticate", "Bearer realm=\""+TokenInfo.Realm+"\"")
+		return nil, ErrorTokenRequired.Send(c)
 	}
 	if strings.HasPrefix(authorization, "Bearer ") {
 		authorization = strings.TrimPrefix(authorization, "Bearer ")
 	} else {
 		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_request\"")
-		return "", ErrorInvalidAuthorization.Send(c)
+		return nil, ErrorInvalidAuthorization.Send(c)
 	}
 
-	jwt, claims, err := keycloak.client.DecodeAccessToken(context.Background(), authorization, keycloak.realm)
+	body := url.Values{}
+	body.Add("token", authorization)
+	resp, err := http.NewRequest("POST", TokenInfo.IntrospectURL, strings.NewReader(body.Encode()))
 	if err != nil {
-		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		log.Printf("Failed to decode token: %s error: %v", authorization, err)
-		return "", ErrorInvalidToken3.Send(c)
+		return nil, ErrorInternalError.Send(c, err)
 	}
 
-	if !jwt.Valid {
+	respRaw := make([]byte, 8192)
+	i, err := resp.Body.Read(respRaw)
+	if err != nil {
+		log.Printf("Failed to read introspection result: %v", err)
 		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		return "", ErrorInvalidToken4.Send(c)
+		return nil, ErrorInvalidToken3.Send(c)
 	}
 
-	if claims.Valid() != nil {
+	result := IntrospectionResult{}
+	err = json.Unmarshal(respRaw[:i], &result)
+	if err != nil {
+		log.Printf("Failed to unmarshal introspection result: %v", err)
 		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
-		return "", ErrorInvalidToken5.Send(c)
+		return nil, ErrorInvalidToken4.Send(c)
 	}
-	scope, ok := (*claims)["scope"].(string)
-	if !ok {
-		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"insufficient_scope\"")
-		return "", ErrorNoScope.Send(c)
+
+	if !result.Active {
+		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"invalid_token\"")
+		return nil, ErrorInvalidToken5.Send(c)
 	}
+
 	scope_ok := false
-	for _, v := range strings.Split(scope, " ") {
+	for _, v := range strings.Split(result.Scope, " ") {
 		if v == "samba" {
 			scope_ok = true
 			break
@@ -71,11 +100,7 @@ func CheckToken(c echo.Context) (id string, err error) {
 	}
 	if !scope_ok {
 		c.Response().Header().Add("WWW-Authenticate", "Bearer error=\"insufficient_scope\"")
-		return "", ErrorInsufficientScope.Send(c)
+		return nil, ErrorInsufficientScope.Send(c)
 	}
-	username, ok := (*claims)["preferred_username"].(string)
-	if !ok {
-		return "", ErrNoUserID
-	}
-	return username, nil
+	return &result, nil
 }

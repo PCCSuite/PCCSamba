@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/PCCSuite/PCCSamba/SambaAPI/lib"
 	"github.com/PCCSuite/PCCSamba/SambaAPI/lib/db"
@@ -23,19 +24,19 @@ type GetPasswordResponce struct {
 }
 
 func GetPassword(c echo.Context) error {
-	user, err := lib.CheckToken(c)
+	auth, err := lib.CheckToken(c)
 	if err != nil {
-		log.Print("Failed to check token: ", err)
+		log.Print("Failed to send error: ", err)
 	}
-	if user == "" {
+	if auth == nil {
 		log.Print("Auth failed: ", err)
 		return err
 	}
-	userdata, err := db.GetData(user)
+	userdata, err := db.GetData(auth.Username)
 	var password string
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			password, err = initUser(user)
+			password, err = initUser(auth.Username)
 			if err != nil {
 				return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to init user: ", err))
 			}
@@ -43,11 +44,16 @@ func GetPassword(c echo.Context) error {
 			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to get userdata: ", err))
 		}
 	}
+	err = checkGroup(auth.Username, auth.ResourceAccess[lib.TokenInfo.Client].Roles)
+	if err != nil {
+		log.Print("Failed to check groups: ", err)
+		return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to check groups: ", err))
+	}
 	switch userdata.Mode {
 	case lib.PasswordModeDynamic:
 		if password == "" {
 			password = lib.GeneratePassword()
-			msg, err := samba.SetPassword(user, password)
+			msg, err := samba.SetPassword(auth.Username, password)
 			if err != nil {
 				if _, ok := err.(*exec.ExitError); !ok {
 					msg = err.Error()
@@ -106,6 +112,49 @@ func initUser(user string) (string, error) {
 	return password, err
 }
 
+var roleGroups = strings.Split(os.Getenv("PCC_SAMBA_ROLE_GROUPS"), " ")
+
+func checkGroup(user string, roles []string) error {
+	sambaGroups, err := samba.GetUserGroups(user)
+	if err != nil {
+		return fmt.Errorf("failed to get samba group: %w", err)
+	}
+	for _, group := range roleGroups {
+		inSamba := false
+		for _, v := range sambaGroups {
+			if v == group {
+				inSamba = true
+				break
+			}
+		}
+		inRole := false
+		for _, v := range roles {
+			if v == group {
+				inRole = true
+				break
+			}
+		}
+		if inRole {
+			if !inSamba {
+				msg, err := samba.AddUserToGroup(user, group)
+				if _, ok := err.(*exec.ExitError); ok {
+					err = fmt.Errorf("%s: %w", msg, err)
+				}
+				return fmt.Errorf("failed to add user to group %v: %w", group, err)
+			}
+		} else {
+			if inSamba {
+				msg, err := samba.RemoveUserFromGroup(user, group)
+				if _, ok := err.(*exec.ExitError); ok {
+					err = fmt.Errorf("%s: %w", msg, err)
+				}
+				return fmt.Errorf("failed to remove user from group %v: %w", group, err)
+			}
+		}
+	}
+	return nil
+}
+
 type SetPasswordRequest struct {
 	Mode      lib.PasswordMode `json:"mode"`
 	Password  string           `json:"password,omitempty"`
@@ -113,11 +162,11 @@ type SetPasswordRequest struct {
 }
 
 func SetPassword(c echo.Context) error {
-	user, err := lib.CheckToken(c)
+	auth, err := lib.CheckToken(c)
 	if err != nil {
 		log.Print("Failed to check token: ", err)
 	}
-	if user == "" {
+	if auth == nil {
 		log.Print("Auth failed: ", err)
 		return err
 	}
@@ -128,14 +177,14 @@ func SetPassword(c echo.Context) error {
 		return lib.ErrorInvalidRequest.Send(c)
 	}
 	userdata := db.UserData{
-		ID:   user,
+		ID:   auth.Username,
 		Mode: data.Mode,
 	}
 	switch data.Mode {
 	case lib.PasswordModeDynamic:
 		break
 	case lib.PasswordModeStaticPlain:
-		msg, err := samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(auth.Username, data.Password)
 		if err != nil {
 			if _, ok := err.(*exec.ExitError); !ok {
 				msg = err.Error()
@@ -144,7 +193,7 @@ func SetPassword(c echo.Context) error {
 		}
 		userdata.Data = data.Password
 	case lib.PasswordModeStaticEncrypted:
-		msg, err := samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(auth.Username, data.Password)
 		if err != nil {
 			if _, ok := err.(*exec.ExitError); !ok {
 				msg = err.Error()
@@ -153,7 +202,7 @@ func SetPassword(c echo.Context) error {
 		}
 		userdata.Data = data.Encrypted
 	case lib.PasswordModeStaticUnstored:
-		msg, err := samba.SetPassword(user, data.Password)
+		msg, err := samba.SetPassword(auth.Username, data.Password)
 		if err != nil {
 			if _, ok := err.(*exec.ExitError); !ok {
 				msg = err.Error()

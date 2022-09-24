@@ -26,6 +26,24 @@ func AddUserToGroup(username, group string) (string, error) {
 	return execSambaTool([]string{"group", "addmembers", group, username})
 }
 
+func RemoveUserFromGroup(username, group string) (string, error) {
+	return execSambaTool([]string{"group", "removemembers", group, username})
+}
+
+func GetUserGroups(username string) (groups []string, err error) {
+	result, err := execSambaTool([]string{"user", "getgroups", username})
+	if err != nil {
+		return
+	}
+	for _, v := range strings.Split(result, "\n") {
+		v = strings.TrimSpace(v)
+		if len(v) != 0 {
+			groups = append(groups, v)
+		}
+	}
+	return
+}
+
 var ErrInvalidResult = errors.New("process result invalid")
 
 func GetUID(username string) (int, error) {
