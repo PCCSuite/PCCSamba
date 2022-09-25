@@ -86,7 +86,7 @@ func initUser(user string) (string, error) {
 		}
 		return "", fmt.Errorf("failed to add user to samba: %w", err)
 	}
-	homes := homesPath + user
+	homes := filepath.Join(homesPath, user)
 	err = os.Mkdir(homes, 0700)
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		return "", fmt.Errorf("failed to make homes: %w", err)
