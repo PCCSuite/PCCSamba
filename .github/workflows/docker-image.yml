@@ -18,10 +18,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        id: docker_build
+      - name: Build with API
+        id: docker_build_api
         uses: docker/build-push-action@v3
         with:
           file: docker/Dockerfile
           push: true
           tags: ghcr.io/pccsuite/pccsamba:latest
+      - name: Build for Standalone
+        id: docker_build_standalone
+        uses: docker/build-push-action@v3
+        with:
+          file: docker/Dockerfile.standalone
+          push: true
+          tags: ghcr.io/pccsuite/pccsamba:standalone
