@@ -47,17 +47,6 @@ services:
       - 8081:8081
     restart: unless-stopped
     pull_policy: always
-  phpldapadmin:
-    image: "osixia/phpldapadmin:stable"
-    depends_on:
-      - sambad
-    ports:
-      - 25565:80
-    environment:
-      - PHPLDAPADMIN_LDAP_HOSTS=sambad
-      - PHPLDAPADMIN_HTTPS=false
-    restart: unless-stopped
-    pull_policy: always
   postgres:
     image: "postgres:latest"
     volumes:
