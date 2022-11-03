@@ -187,7 +187,7 @@ func SetPassword(c echo.Context) error {
 	switch data.Mode {
 	case lib.PasswordModeDynamic:
 		break
-	case lib.PasswordModeStaticPlain:
+	case lib.PasswordModeStaticPlain, lib.PasswordModeStaticEncrypted, lib.PasswordModeStaticUnstored:
 		msg, err := samba.SetPassword(auth.Username, data.Password)
 		if err != nil {
 			if _, ok := err.(*exec.ExitError); !ok {
@@ -196,25 +196,14 @@ func SetPassword(c echo.Context) error {
 			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
 		}
 		userdata.Data = data.Password
-	case lib.PasswordModeStaticEncrypted:
-		msg, err := samba.SetPassword(auth.Username, data.Password)
-		if err != nil {
-			if _, ok := err.(*exec.ExitError); !ok {
-				msg = err.Error()
-			}
-			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
-		}
-		userdata.Data = data.Encrypted
-	case lib.PasswordModeStaticUnstored:
-		msg, err := samba.SetPassword(auth.Username, data.Password)
-		if err != nil {
-			if _, ok := err.(*exec.ExitError); !ok {
-				msg = err.Error()
-			}
-			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
-		}
 	default:
 		return lib.ErrorInvalidPasswordMode.Send(c)
+	}
+	switch data.Mode {
+	case lib.PasswordModeStaticPlain:
+		userdata.Data = data.Password
+	case lib.PasswordModeStaticEncrypted:
+		userdata.Data = data.Encrypted
 	}
 	err = db.SetData(&userdata)
 	if err != nil {
