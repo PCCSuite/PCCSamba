@@ -48,7 +48,7 @@ services:
     restart: unless-stopped
     pull_policy: always
   postgres:
-    image: "postgres:latest"
+    image: "postgres:15-alpine"
     volumes:
       - type: bind
         source: ${PCC_SAMBA_DATA}/postgres
