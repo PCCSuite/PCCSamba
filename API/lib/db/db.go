@@ -91,12 +91,7 @@ func SetData(data *UserData) error {
 	return err
 }
 
-func AddUser(id string) (*UserData, error) {
-	data := UserData{
-		ID:   id,
-		Mode: lib.PasswordModeDynamic,
-		Data: "",
-	}
+func AddUser(data *UserData) error {
 	_, err := addStmt.Exec(data.ID, data.Mode, data.Data)
-	return &data, err
+	return err
 }

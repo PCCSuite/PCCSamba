@@ -36,7 +36,7 @@ func GetPassword(c echo.Context) error {
 	var password string
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			password, err = initUser(auth.Username)
+			userdata, password, err = initUser(auth.Username)
 			if err != nil {
 				return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to init user: ", err))
 			}
@@ -77,8 +77,8 @@ func GetPassword(c echo.Context) error {
 
 var homesPath = os.Getenv("PCC_SAMBAAPI_HOMES_FILEPATH")
 
-// return password
-func initUser(user string) (string, error) {
+// return user data and password
+func initUser(user string) (*db.UserData, string, error) {
 	password := lib.GeneratePassword()
 	_, err := samba.AddUser(user, password)
 	if err != nil {
@@ -86,17 +86,17 @@ func initUser(user string) (string, error) {
 			// if user exists, skip add
 			password = ""
 		} else {
-			return "", fmt.Errorf("failed to add user to samba: %w", err)
+			return nil, "", fmt.Errorf("failed to add user to samba: %w", err)
 		}
 	}
 	uid, err := samba.GetUID(user)
 	if err != nil {
-		return "", fmt.Errorf("failed to get uid: %w", err)
+		return nil, "", fmt.Errorf("failed to get uid: %w", err)
 	}
 	homes := filepath.Join(homesPath, user)
 	err = os.Mkdir(homes, 0700)
 	if err != nil && !errors.Is(err, os.ErrExist) {
-		return "", fmt.Errorf("failed to make homes: %w", err)
+		return nil, "", fmt.Errorf("failed to make homes: %w", err)
 	}
 	err = filepath.WalkDir(homes, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -109,10 +109,15 @@ func initUser(user string) (string, error) {
 		return os.Chmod(path, 0700)
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to set permission: %w", err)
+		return nil, "", fmt.Errorf("failed to set permission: %w", err)
 	}
-	_, err = db.AddUser(user)
-	return password, err
+	data := &db.UserData{
+		ID:   user,
+		Mode: lib.PasswordModeDynamic,
+		Data: "",
+	}
+	err = db.AddUser(data)
+	return data, password, err
 }
 
 var roleGroups = strings.Split(os.Getenv("PCC_SAMBA_ROLE_GROUPS"), " ")
