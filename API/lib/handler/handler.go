@@ -77,23 +77,26 @@ func GetPassword(c echo.Context) error {
 
 var homesPath = os.Getenv("PCC_SAMBAAPI_HOMES_FILEPATH")
 
+// return password
 func initUser(user string) (string, error) {
 	password := lib.GeneratePassword()
-	msg, err := samba.AddUser(user, password)
+	_, err := samba.AddUser(user, password)
 	if err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
-			err = fmt.Errorf("%s: %w", msg, err)
+			// if user exists, skip add
+			password = ""
+		} else {
+			return "", fmt.Errorf("failed to add user to samba: %w", err)
 		}
-		return "", fmt.Errorf("failed to add user to samba: %w", err)
+	}
+	uid, err := samba.GetUID(user)
+	if err != nil {
+		return "", fmt.Errorf("failed to get uid: %w", err)
 	}
 	homes := filepath.Join(homesPath, user)
 	err = os.Mkdir(homes, 0700)
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		return "", fmt.Errorf("failed to make homes: %w", err)
-	}
-	uid, err := samba.GetUID(user)
-	if err != nil {
-		return "", fmt.Errorf("failed to get uid: %w", err)
 	}
 	err = filepath.WalkDir(homes, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
