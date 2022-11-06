@@ -25,10 +25,3 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: ghcr.io/pccsuite/pccsamba:latest
-      - name: Build for Standalone
-        id: docker_build_standalone
-        uses: docker/build-push-action@v3
-        with:
-          file: docker/Dockerfile.standalone
-          push: true
-          tags: ghcr.io/pccsuite/pccsamba:standalone
