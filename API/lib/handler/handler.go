@@ -23,6 +23,28 @@ type GetPasswordResponce struct {
 	Data string           `json:"data,omitempty"`
 }
 
+// returns data,password,err
+func getUser(username string, roles []string) (*db.UserData, string, error) {
+	userdata, err := db.GetData(username)
+	var password string
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			userdata, password, err = initUser(username)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to init user: %w", err)
+			}
+		} else {
+			return nil, "", fmt.Errorf("failed to get userdata: %w", err)
+		}
+	}
+	err = checkGroup(username, roles)
+	if err != nil {
+		log.Print("Failed to check groups: ", err)
+		return nil, "", fmt.Errorf("failed to check groups: %w", err)
+	}
+	return userdata, password, nil
+}
+
 func GetPassword(c echo.Context) error {
 	auth, err := lib.CheckToken(c)
 	if err != nil {
@@ -32,23 +54,13 @@ func GetPassword(c echo.Context) error {
 		log.Print("Auth failed: ", err)
 		return err
 	}
-	userdata, err := db.GetData(auth.Username)
-	var password string
+
+	userdata, password, err := getUser(auth.Username, auth.RealmAccess.Roles)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			userdata, password, err = initUser(auth.Username)
-			if err != nil {
-				return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to init user: ", err))
-			}
-		} else {
-			return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to get userdata: ", err))
-		}
+		log.Print("Failed to prepere user: ", err)
+		return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to prepere user: ", err))
 	}
-	err = checkGroup(auth.Username, auth.ResourceAccess[lib.TokenInfo.Client].Roles)
-	if err != nil {
-		log.Print("Failed to check groups: ", err)
-		return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to check groups: ", err))
-	}
+
 	switch userdata.Mode {
 	case lib.PasswordModeDynamic:
 		if password == "" {
@@ -181,6 +193,12 @@ func SetPassword(c echo.Context) error {
 	if auth == nil {
 		log.Print("Auth failed: ", err)
 		return err
+	}
+
+	_, _, err = getUser(auth.Username, auth.RealmAccess.Roles)
+	if err != nil {
+		log.Print("Failed to prepere user: ", err)
+		return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to prepere user: ", err))
 	}
 
 	data := SetPasswordRequest{}
