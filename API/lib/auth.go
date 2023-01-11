@@ -28,14 +28,6 @@ var TokenInfo = struct {
 	Client:         os.Getenv("PCC_SAMBAAPI_TOKEN_CLIENT"),
 }
 
-var person = struct {
-	Name string
-	Age  int
-}{
-	Name: "tenntenn",
-	Age:  30,
-}
-
 var TokenClientId = os.Getenv("PCC_SAMBAAPI_TOKEN_CLIENT")
 
 type IntrospectionResult struct {
