@@ -28,6 +28,9 @@ services:
         source: ${PCC_SAMBA_DATA}/sambad/lib
         target: /var/lib/samba
       - type: bind
+        source: ${PCC_SAMBA_DATA}/sambad/log
+        target: /var/log/samba
+      - type: bind
         source: ${PCC_SAMBA_DATA}/sambad/data
         target: /data
     ports:
