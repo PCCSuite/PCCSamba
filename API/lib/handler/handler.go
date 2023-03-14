@@ -18,7 +18,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type GetPasswordResponce struct {
+type GetPasswordResponse struct {
 	Mode lib.PasswordMode `json:"mode"`
 	Data string           `json:"data,omitempty"`
 }
@@ -82,12 +82,12 @@ func GetPassword(c echo.Context) error {
 				return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to set password in samba: ", msg))
 			}
 		}
-		return c.JSON(http.StatusOK, GetPasswordResponce{
+		return c.JSON(http.StatusOK, GetPasswordResponse{
 			Mode: userdata.Mode,
 			Data: password,
 		})
 	case lib.PasswordModeStaticUnstored, lib.PasswordModeStaticEncrypted, lib.PasswordModeStaticPlain:
-		return c.JSON(http.StatusOK, GetPasswordResponce{
+		return c.JSON(http.StatusOK, GetPasswordResponse{
 			Mode: userdata.Mode,
 			Data: userdata.Data,
 		})

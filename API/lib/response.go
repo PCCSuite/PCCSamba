@@ -9,7 +9,7 @@ import (
 
 type ErrorResp struct {
 	Status int
-	Data   ErrorResponceData
+	Data   ErrorResponseData
 }
 
 func (e ErrorResp) Send(c echo.Context, args ...any) error {
@@ -17,14 +17,14 @@ func (e ErrorResp) Send(c echo.Context, args ...any) error {
 	return c.JSON(e.Status, e.Data)
 }
 
-type ErrorResponceData struct {
+type ErrorResponseData struct {
 	Error string `json:"error"`
 	Code  int    `json:"code"`
 }
 
 var ErrorTokenRequired = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Token required",
 		Code:  1001,
 	},
@@ -32,7 +32,7 @@ var ErrorTokenRequired = ErrorResp{
 
 var ErrorInvalidAuthorization = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Authorization",
 		Code:  1002,
 	},
@@ -40,7 +40,7 @@ var ErrorInvalidAuthorization = ErrorResp{
 
 var ErrorInvalidToken3 = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Token",
 		Code:  1003,
 	},
@@ -48,7 +48,7 @@ var ErrorInvalidToken3 = ErrorResp{
 
 var ErrorInvalidToken4 = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Token",
 		Code:  1004,
 	},
@@ -56,7 +56,7 @@ var ErrorInvalidToken4 = ErrorResp{
 
 var ErrorInvalidToken5 = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Token",
 		Code:  1005,
 	},
@@ -64,7 +64,7 @@ var ErrorInvalidToken5 = ErrorResp{
 
 var ErrorNoScope = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Token isn't have scope",
 		Code:  1006,
 	},
@@ -72,7 +72,7 @@ var ErrorNoScope = ErrorResp{
 
 var ErrorInsufficientScope = ErrorResp{
 	Status: http.StatusUnauthorized,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Insufficient Scope",
 		Code:  1007,
 	},
@@ -80,7 +80,7 @@ var ErrorInsufficientScope = ErrorResp{
 
 var ErrorInvalidRequest = ErrorResp{
 	Status: http.StatusBadRequest,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Request: Failed to parse",
 		Code:  1101,
 	},
@@ -88,7 +88,7 @@ var ErrorInvalidRequest = ErrorResp{
 
 var ErrorInvalidPasswordMode = ErrorResp{
 	Status: http.StatusBadRequest,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Invalid Request: Unknown password mode",
 		Code:  1102,
 	},
@@ -96,7 +96,7 @@ var ErrorInvalidPasswordMode = ErrorResp{
 
 var ErrorInternalError = ErrorResp{
 	Status: http.StatusInternalServerError,
-	Data: ErrorResponceData{
+	Data: ErrorResponseData{
 		Error: "Internal error: %v",
 		Code:  2001,
 	},
