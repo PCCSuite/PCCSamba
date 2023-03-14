@@ -55,7 +55,16 @@ func GetPassword(c echo.Context) error {
 		return err
 	}
 
-	userdata, password, err := getUser(auth.Username, auth.RealmAccess.Roles)
+	sambaAccessData, ok := auth.ResourceAccess[lib.TokenInfo.Client]
+
+	var roles []string
+	if ok {
+		roles = sambaAccessData.Roles
+	} else {
+		roles = []string{}
+	}
+
+	userdata, password, err := getUser(auth.Username, roles)
 	if err != nil {
 		log.Print("Failed to prepere user: ", err)
 		return lib.ErrorInternalError.Send(c, fmt.Sprint("Failed to prepere user: ", err))
