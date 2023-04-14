@@ -61,3 +61,19 @@ services:
       - "POSTGRES_PASSWORD=${PCC_SAMBAAPI_DB_PASSWORD}"
     restart: unless-stopped
     pull_policy: always
+  caddy:
+    image: "caddy:alpine"
+    volumes:
+      - type: bind
+        source: ${PCC_SAMBA_DATA}/sambad/data/share/www
+        target: /data
+        read_only: true
+      - type: bind
+        source: caddy/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+    ports:
+      - 80:80
+    restart: unless-stopped
+    pull_policy: always
+    
